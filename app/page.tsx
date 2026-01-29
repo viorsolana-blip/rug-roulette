@@ -18,8 +18,16 @@ import {
   Crown,
   Shield,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Activity,
+  Target
 } from "lucide-react";
+
+// Import new components
+import Leaderboard from "./components/Leaderboard";
+import QuickRoulette from "./components/QuickRoulette";
+import Tournament from "./components/Tournament";
+import ActivityFeed from "./components/ActivityFeed";
 
 // Pool game constants
 interface Player {
@@ -91,6 +99,16 @@ const BET_OPTIONS = [
   { multiplier: 50, label: "50x", color: "#ef4444", probability: "2%" },
 ];
 
+// Tab configuration
+const TABS = [
+  { id: 'death-pool', label: 'Death Pool', icon: Skull, color: '#ef4444' },
+  { id: 'quick-roulette', label: 'Quick Roulette', icon: Zap, color: '#3b82f6' },
+  { id: 'tournaments', label: 'Tournaments', icon: Trophy, color: '#f59e0b' },
+  { id: 'leaderboard', label: 'Leaderboard', icon: Crown, color: '#8b5cf6' },
+] as const;
+
+type TabId = typeof TABS[number]['id'];
+
 export default function RugRoulette() {
   const [balance, setBalance] = useState(1000);
   const [stakeAmount, setStakeAmount] = useState(10);
@@ -118,6 +136,7 @@ export default function RugRoulette() {
     totalWon: 189.2,
     badges: ['survivor', 'veteran']
   });
+  const [activeTab, setActiveTab] = useState<TabId>('death-pool');
 
   // Generate initial mock players
   useEffect(() => {
@@ -224,37 +243,6 @@ export default function RugRoulette() {
   const setMaxStake = () => setStakeAmount(Math.min(balance, currentPool.maxStake));
   const setHalfStake = () => setStakeAmount(Math.floor(Math.min(balance, currentPool.maxStake) / 2));
 
-  // Betting functions
-  const adjustBet = (direction: "up" | "down") => {
-    const multiplier = direction === "up" ? 2 : 0.5;
-    setBetAmount(prev => Math.min(Math.max(Math.round(prev * multiplier), 1), balance));
-  };
-
-  const setMaxBet = () => setBetAmount(balance);
-  const setHalfBet = () => setBetAmount(Math.floor(balance / 2));
-
-  const spin = () => {
-    if (!selectedMultiplier || betAmount > balance || betAmount <= 0) return;
-
-    setIsSpinning(true);
-    setBalance(prev => prev - betAmount);
-
-    // Simulate spin result
-    setTimeout(() => {
-      const randomResult = Math.random() * 100;
-      const winChance = 100 / selectedMultiplier;
-
-      if (randomResult < winChance) {
-        // Win
-        const winAmount = betAmount * selectedMultiplier;
-        setBalance(prev => prev + winAmount);
-      }
-
-      setIsSpinning(false);
-      setSelectedMultiplier(null);
-    }, 3000);
-  };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -315,8 +303,31 @@ export default function RugRoulette() {
           </div>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2 p-1 bg-muted rounded-xl">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 sm:flex-initial flex items-center gap-2 px-4 py-3 rounded-lg font-bambino font-semibold text-sm transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-card text-foreground shadow-md'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" style={{ color: activeTab === tab.id ? tab.color : undefined }} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column - User Stats & Badges */}
+          {/* Left Column - User Stats & Activity Feed */}
           <div className="lg:col-span-3 space-y-4">
             {/* User Stats */}
             <div className="rug-card rounded-2xl p-5">
@@ -360,276 +371,274 @@ export default function RugRoulette() {
               </div>
             </div>
 
-            {/* Recent Pools */}
-            <div className="rug-card rounded-2xl p-5">
-              <h3 className="font-hyperbole text-lg mb-4 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                Recent Pools
-              </h3>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {recentPools.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No recent pools</p>
-                ) : (
-                  recentPools.map((pool) => (
-                    <div
-                      key={pool.id}
-                      className="flex items-center justify-between p-3 rounded-xl bg-muted/50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Crown className="w-3 h-3 text-accent" />
-                        <span className="font-mono text-sm">{pool.winner?.address || 'N/A'}</span>
-                      </div>
-                      <span className="font-mono text-sm text-primary">
-                        +{pool.totalStaked.toFixed(1)}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            {/* Activity Feed */}
+            <ActivityFeed />
           </div>
 
-          {/* Center Column - Pool Interface */}
+          {/* Center Column - Dynamic Content */}
           <div className="lg:col-span-6">
-            <div className="rug-card rounded-3xl p-6 sm:p-8 relative">
-              {/* Pool Header */}
-              <div className="text-center mb-8">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  <Skull className="w-8 h-8 text-destructive" />
-                  <h2 className="font-hyperbole text-3xl gradient-text">Death Pool</h2>
-                  <Skull className="w-8 h-8 text-destructive" />
+            {activeTab === 'death-pool' && (
+              <div className="rug-card rounded-3xl p-6 sm:p-8 relative">
+                {/* Pool Header */}
+                <div className="text-center mb-8">
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    <Skull className="w-8 h-8 text-destructive" />
+                    <h2 className="font-hyperbole text-3xl gradient-text">Death Pool</h2>
+                    <Skull className="w-8 h-8 text-destructive" />
+                  </div>
+                  <p className="text-muted-foreground font-bambino">
+                    Stake SOL, wait for the rug... Only one survives to claim the entire pool.
+                  </p>
                 </div>
-                <p className="text-muted-foreground font-bambino">
-                  Stake SOL, wait for the rug... Only one survives to claim the entire pool.
-                </p>
-              </div>
 
-              {/* Timer */}
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-destructive/10 border border-destructive/20">
-                  <Timer className={`w-6 h-6 text-destructive ${currentPool.timeRemaining < 30 ? 'animate-pulse' : ''}`} />
-                  <div>
-                    <div className="text-xs text-destructive font-bambino mb-1">Time Until Rug Event</div>
-                    <div className={`font-hyperbole text-2xl ${currentPool.timeRemaining < 30 ? 'text-destructive' : 'text-foreground'}`}>
-                      {formatTime(currentPool.timeRemaining)}
+                {/* Timer */}
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-destructive/10 border border-destructive/20">
+                    <Timer className={`w-6 h-6 text-destructive ${currentPool.timeRemaining < 30 ? 'animate-pulse' : ''}`} />
+                    <div>
+                      <div className="text-xs text-destructive font-bambino mb-1">Time Until Rug Event</div>
+                      <div className={`font-hyperbole text-2xl ${currentPool.timeRemaining < 30 ? 'text-destructive' : 'text-foreground'}`}>
+                        {formatTime(currentPool.timeRemaining)}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Pool Stats */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
-                <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
-                  <div className="text-2xl font-hyperbole text-primary">{currentPool.totalStaked.toFixed(1)}</div>
-                  <div className="text-xs text-muted-foreground font-bambino">Total Pool</div>
+                {/* Pool Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                  <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
+                    <div className="text-2xl font-hyperbole text-primary">{currentPool.totalStaked.toFixed(1)}</div>
+                    <div className="text-xs text-muted-foreground font-bambino">Total Pool</div>
+                  </div>
+                  <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
+                    <div className="text-2xl font-hyperbole text-accent">{currentPool.players.length}</div>
+                    <div className="text-xs text-muted-foreground font-bambino">Players</div>
+                  </div>
+                  <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
+                    <div className="text-2xl font-hyperbole text-chart-3">{Math.round((1 / currentPool.players.length) * 100)}%</div>
+                    <div className="text-xs text-muted-foreground font-bambino">Win Chance</div>
+                  </div>
                 </div>
-                <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
-                  <div className="text-2xl font-hyperbole text-accent">{currentPool.players.length}</div>
-                  <div className="text-xs text-muted-foreground font-bambino">Players</div>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
-                  <div className="text-2xl font-hyperbole text-chart-3">{Math.round((1 / currentPool.players.length) * 100)}%</div>
-                  <div className="text-xs text-muted-foreground font-bambino">Win Chance</div>
-                </div>
-              </div>
 
-              {/* Players List */}
-              <div className="mb-8">
-                <h3 className="font-hyperbole text-lg mb-4 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-gray-400" />
-                  Players in Pool ({currentPool.players.length}/{currentPool.maxPlayers})
-                </h3>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                  {currentPool.players.map((player, index) => (
-                    <div
-                      key={player.id}
-                      className={`flex items-center justify-between p-3 rounded-xl transition-all ${
-                        player.address === 'You' ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/5'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={player.avatar}
-                          alt="Avatar"
-                          className="w-8 h-8 rounded-lg"
-                        />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className={`font-mono text-sm ${player.address === 'You' ? 'text-green-400' : 'text-white'}`}>
-                              {player.address}
-                            </span>
-                            {player.badges.length > 0 && (
-                              <div className="flex gap-1">
-                                {player.badges.slice(0, 2).map(badgeId => {
-                                  const badge = BADGES.find(b => b.id === badgeId);
-                                  return badge ? (
-                                    <span key={badge.id} className="text-xs" title={badge.name}>
-                                      {badge.icon}
-                                    </span>
-                                  ) : null;
-                                })}
-                              </div>
-                            )}
+                {/* Players List */}
+                <div className="mb-8">
+                  <h3 className="font-hyperbole text-lg mb-4 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-gray-400" />
+                    Players in Pool ({currentPool.players.length}/{currentPool.maxPlayers})
+                  </h3>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {currentPool.players.map((player, index) => (
+                      <div
+                        key={player.id}
+                        className={`flex items-center justify-between p-3 rounded-xl transition-all ${
+                          player.address === 'You' ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={player.avatar}
+                            alt="Avatar"
+                            className="w-8 h-8 rounded-lg"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`font-mono text-sm ${player.address === 'You' ? 'text-green-400' : 'text-white'}`}>
+                                {player.address}
+                              </span>
+                              {player.badges.length > 0 && (
+                                <div className="flex gap-1">
+                                  {player.badges.slice(0, 2).map(badgeId => {
+                                    const badge = BADGES.find(b => b.id === badgeId);
+                                    return badge ? (
+                                      <span key={badge.id} className="text-xs" title={badge.name}>
+                                        {badge.icon}
+                                      </span>
+                                    ) : null;
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Joined {Math.floor((Date.now() - player.joinedAt.getTime()) / 1000)}s ago
+                            </div>
                           </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono text-sm text-green-400">{player.stake} SOL</div>
                           <div className="text-xs text-gray-500">
-                            Joined {Math.floor((Date.now() - player.joinedAt.getTime()) / 1000)}s ago
+                            {Math.round((player.stake / currentPool.totalStaked) * 100)}% of pool
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-mono text-sm text-green-400">{player.stake} SOL</div>
-                        <div className="text-xs text-gray-500">
-                          {Math.round((player.stake / currentPool.totalStaked) * 100)}% of pool
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rug Event Overlay */}
-              {showRugEvent && currentPool.rugEvent && (
-                <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/80 rounded-3xl">
-                  <div className="animate-bounce-in bg-red-500/20 backdrop-blur-xl rounded-3xl p-8 border-2 border-red-500 text-center max-w-sm">
-                    <Skull className="w-16 h-16 text-red-400 mx-auto mb-4" />
-                    <p className="text-red-400 font-hyperbole text-2xl mb-2">RUG PULLED!</p>
-                    <p className="text-white font-bambino mb-4">
-                      <span className="text-green-400 font-mono">{currentPool.rugEvent.winner.address}</span> survives
-                    </p>
-                    <p className="text-green-400 font-hyperbole text-3xl">
-                      +{currentPool.rugEvent.totalPrize.toFixed(1)} SOL
-                    </p>
+                    ))}
                   </div>
                 </div>
-              )}
 
-              {/* Game Rules */}
-              <div className="text-center text-xs text-gray-500">
-                <Info className="w-3 h-3 inline mr-1" />
-                Winner takes all • Random timer • Equal chance for all players
+                {/* Rug Event Overlay */}
+                {showRugEvent && currentPool.rugEvent && (
+                  <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/80 rounded-3xl">
+                    <div className="animate-bounce-in bg-red-500/20 backdrop-blur-xl rounded-3xl p-8 border-2 border-red-500 text-center max-w-sm">
+                      <Skull className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                      <p className="text-red-400 font-hyperbole text-2xl mb-2">RUG PULLED!</p>
+                      <p className="text-white font-bambino mb-4">
+                        <span className="text-green-400 font-mono">{currentPool.rugEvent.winner.address}</span> survives
+                      </p>
+                      <p className="text-green-400 font-hyperbole text-3xl">
+                        +{currentPool.rugEvent.totalPrize.toFixed(1)} SOL
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Game Rules */}
+                <div className="text-center text-xs text-gray-500">
+                  <Info className="w-3 h-3 inline mr-1" />
+                  Winner takes all • Random timer • Equal chance for all players
+                </div>
               </div>
-            </div>
+            )}
+
+            {activeTab === 'quick-roulette' && (
+              <QuickRoulette 
+                balance={balance} 
+                onBalanceUpdate={setBalance} 
+              />
+            )}
+
+            {activeTab === 'tournaments' && (
+              <Tournament balance={balance} />
+            )}
+
+            {activeTab === 'leaderboard' && (
+              <Leaderboard />
+            )}
           </div>
 
-          {/* Right Column - Join Pool */}
+          {/* Right Column - Tab-specific content */}
           <div className="lg:col-span-3 space-y-4">
-            {/* Stake Amount */}
-            <div className="rounded-2xl bg-black border border-white/10 p-5">
-              <h3 className="font-hyperbole text-lg mb-4">Stake Amount</h3>
+            {activeTab === 'death-pool' && (
+              <>
+                {/* Stake Amount */}
+                <div className="rounded-2xl bg-black border border-white/10 p-5">
+                  <h3 className="font-hyperbole text-lg mb-4">Stake Amount</h3>
 
-              <div className="relative mb-4">
-                <input
-                  type="number"
-                  value={stakeAmount}
-                  onChange={(e) => setStakeAmount(Math.max(currentPool.minStake, Math.min(balance, Number(e.target.value))))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-center font-mono text-2xl focus:outline-none focus:border-green-500/50 transition-colors"
-                  disabled={userInPool || currentPool.status !== 'waiting'}
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-500">SOL</span>
-              </div>
+                  <div className="relative mb-4">
+                    <input
+                      type="number"
+                      value={stakeAmount}
+                      onChange={(e) => setStakeAmount(Math.max(currentPool.minStake, Math.min(balance, Number(e.target.value))))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-center font-mono text-2xl focus:outline-none focus:border-green-500/50 transition-colors"
+                      disabled={userInPool || currentPool.status !== 'waiting'}
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-500">SOL</span>
+                  </div>
 
-              <div className="text-xs text-gray-500 mb-4 text-center">
-                Min: {currentPool.minStake} SOL • Max: {currentPool.maxStake} SOL
-              </div>
+                  <div className="text-xs text-gray-500 mb-4 text-center">
+                    Min: {currentPool.minStake} SOL • Max: {currentPool.maxStake} SOL
+                  </div>
 
-              {/* Quick Adjust */}
-              <div className="flex items-center gap-2 mb-4">
+                  {/* Quick Adjust */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <button
+                      onClick={() => adjustStake("down")}
+                      disabled={userInPool}
+                      className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-50"
+                    >
+                      <ChevronDown className="w-4 h-4 mx-auto" />
+                    </button>
+                    <button
+                      onClick={() => adjustStake("up")}
+                      disabled={userInPool}
+                      className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-50"
+                    >
+                      <ChevronUp className="w-4 h-4 mx-auto" />
+                    </button>
+                  </div>
+
+                  {/* Quick Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={setHalfStake}
+                      disabled={userInPool}
+                      className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bambino transition-colors disabled:opacity-50"
+                    >
+                      1/2
+                    </button>
+                    <button
+                      onClick={setMaxStake}
+                      disabled={userInPool}
+                      className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bambino transition-colors disabled:opacity-50"
+                    >
+                      MAX
+                    </button>
+                  </div>
+                </div>
+
+                {/* Join Pool Button */}
                 <button
-                  onClick={() => adjustStake("down")}
-                  disabled={userInPool}
-                  className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-50"
+                  onClick={joinPool}
+                  disabled={userInPool || stakeAmount > balance || stakeAmount < currentPool.minStake || stakeAmount > currentPool.maxStake || currentPool.status !== 'waiting'}
+                  className={`w-full py-5 rounded-2xl font-hyperbole text-2xl transition-all duration-300 ${
+                    userInPool || currentPool.status !== 'waiting'
+                      ? 'bg-gray-800 cursor-not-allowed text-gray-500'
+                      : stakeAmount > balance || stakeAmount < currentPool.minStake || stakeAmount > currentPool.maxStake
+                      ? 'bg-red-800 cursor-not-allowed text-red-400'
+                      : 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98]'
+                  }`}
                 >
-                  <ChevronDown className="w-4 h-4 mx-auto" />
+                  {userInPool ? 'IN POOL' : currentPool.status !== 'waiting' ? 'POOL ENDED' : 'JOIN POOL'}
                 </button>
-                <button
-                  onClick={() => adjustStake("up")}
-                  disabled={userInPool}
-                  className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-50"
-                >
-                  <ChevronUp className="w-4 h-4 mx-auto" />
-                </button>
-              </div>
 
-              {/* Quick Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={setHalfStake}
-                  disabled={userInPool}
-                  className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bambino transition-colors disabled:opacity-50"
-                >
-                  1/2
-                </button>
-                <button
-                  onClick={setMaxStake}
-                  disabled={userInPool}
-                  className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bambino transition-colors disabled:opacity-50"
-                >
-                  MAX
-                </button>
-              </div>
-            </div>
-
-            {/* Join Pool Button */}
-            <button
-              onClick={joinPool}
-              disabled={userInPool || stakeAmount > balance || stakeAmount < currentPool.minStake || stakeAmount > currentPool.maxStake || currentPool.status !== 'waiting'}
-              className={`w-full py-5 rounded-2xl font-hyperbole text-2xl transition-all duration-300 ${
-                userInPool || currentPool.status !== 'waiting'
-                  ? 'bg-gray-800 cursor-not-allowed text-gray-500'
-                  : stakeAmount > balance || stakeAmount < currentPool.minStake || stakeAmount > currentPool.maxStake
-                  ? 'bg-red-800 cursor-not-allowed text-red-400'
-                  : 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98]'
-              }`}
-            >
-              {userInPool ? 'IN POOL' : currentPool.status !== 'waiting' ? 'POOL ENDED' : 'JOIN POOL'}
-            </button>
-
-            {userInPool && (
-              <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-center">
-                <p className="text-xs text-green-400 mb-1">You're in!</p>
-                <p className="font-hyperbole text-xl text-green-400">
-                  {stakeAmount} SOL staked
-                </p>
-              </div>
-            )}
-            {stakeAmount > balance && (
-              <p className="text-center text-xs text-red-400">Insufficient balance</p>
-            )}
-            {(stakeAmount < currentPool.minStake || stakeAmount > currentPool.maxStake) && (
-              <p className="text-center text-xs text-red-400">
-                Stake must be between {currentPool.minStake}-{currentPool.maxStake} SOL
-              </p>
+                {userInPool && (
+                  <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-center">
+                    <p className="text-xs text-green-400 mb-1">You're in!</p>
+                    <p className="font-hyperbole text-xl text-green-400">
+                      {stakeAmount} SOL staked
+                    </p>
+                  </div>
+                )}
+                {stakeAmount > balance && (
+                  <p className="text-center text-xs text-red-400">Insufficient balance</p>
+                )}
+                {(stakeAmount < currentPool.minStake || stakeAmount > currentPool.maxStake) && (
+                  <p className="text-center text-xs text-red-400">
+                    Stake must be between {currentPool.minStake}-{currentPool.maxStake} SOL
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
 
-        {/* How It Works */}
-        <div className="mt-8 rounded-2xl bg-black border border-white/10 p-6">
-          <h3 className="font-hyperbole text-xl mb-4">How It Works</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-white/5">
-              <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center mb-3">
-                <span className="font-hyperbole text-green-400">1</span>
+        {/* How It Works - Show for Death Pool only */}
+        {activeTab === 'death-pool' && (
+          <div className="mt-8 rounded-2xl bg-black border border-white/10 p-6">
+            <h3 className="font-hyperbole text-xl mb-4">How It Works</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-white/5">
+                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center mb-3">
+                  <span className="font-hyperbole text-green-400">1</span>
+                </div>
+                <h4 className="font-bambino font-semibold mb-1">Set Your Stake</h4>
+                <p className="text-sm text-gray-500">Choose how much SOL you want to risk</p>
               </div>
-              <h4 className="font-bambino font-semibold mb-1">Set Your Bet</h4>
-              <p className="text-sm text-gray-500">Choose how much SOL you want to risk</p>
-            </div>
-            <div className="p-4 rounded-xl bg-white/5">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mb-3">
-                <span className="font-hyperbole text-blue-400">2</span>
+              <div className="p-4 rounded-xl bg-white/5">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mb-3">
+                  <span className="font-hyperbole text-blue-400">2</span>
+                </div>
+                <h4 className="font-bambino font-semibold mb-1">Wait for Others</h4>
+                <p className="text-sm text-gray-500">Other players join the death pool</p>
               </div>
-              <h4 className="font-bambino font-semibold mb-1">Pick Target</h4>
-              <p className="text-sm text-gray-500">Select a multiplier you think will hit</p>
-            </div>
-            <div className="p-4 rounded-xl bg-white/5">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center mb-3">
-                <span className="font-hyperbole text-purple-400">3</span>
+              <div className="p-4 rounded-xl bg-white/5">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center mb-3">
+                  <span className="font-hyperbole text-purple-400">3</span>
+                </div>
+                <h4 className="font-bambino font-semibold mb-1">Survive & Win</h4>
+                <p className="text-sm text-gray-500">One random survivor claims the entire pool</p>
               </div>
-              <h4 className="font-bambino font-semibold mb-1">Spin & Win</h4>
-              <p className="text-sm text-gray-500">If result ≥ target, you win! Watch out for rugs...</p>
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
