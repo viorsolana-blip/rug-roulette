@@ -20,7 +20,11 @@ import {
   ChevronDown,
   ChevronUp,
   Activity,
-  Target
+  Target,
+  Copy,
+  ExternalLink,
+  Sun,
+  Moon
 } from "lucide-react";
 
 // Import new components
@@ -66,11 +70,11 @@ interface Badge {
 }
 
 const BADGES: Badge[] = [
-  { id: 'survivor', name: 'Survivor', icon: '🛡️', description: 'Won a rug roulette', color: '#22c55e' },
-  { id: 'veteran', name: 'Veteran', icon: '⭐', description: '10+ games played', color: '#3b82f6' },
-  { id: 'whale', name: 'Whale', icon: '🐋', description: 'Staked 100+ SOL', color: '#8b5cf6' },
-  { id: 'lucky', name: 'Lucky', icon: '🍀', description: 'Won 3 in a row', color: '#10b981' },
-  { id: 'diamond', name: 'Diamond Hands', icon: '💎', description: 'Survived 5 rugs', color: '#06b6d4' },
+  { id: 'survivor', name: 'Survivor', icon: 'Shield', description: 'Won a rug roulette', color: '#22c55e' },
+  { id: 'veteran', name: 'Veteran', icon: 'Target', description: '10+ games played', color: '#3b82f6' },
+  { id: 'whale', name: 'Whale', icon: 'TrendingUp', description: 'Staked 100+ SOL', color: '#8b5cf6' },
+  { id: 'lucky', name: 'Lucky', icon: 'Sparkles', description: 'Won 3 in a row', color: '#10b981' },
+  { id: 'diamond', name: 'Diamond Hands', icon: 'Crown', description: 'Survived 5 rugs', color: '#06b6d4' },
 ];
 
 // Generate mock players
@@ -137,6 +141,11 @@ export default function RugRoulette() {
     badges: ['survivor', 'veteran']
   });
   const [activeTab, setActiveTab] = useState<TabId>('death-pool');
+  const [darkMode, setDarkMode] = useState(true);
+  
+  // Mock contract address and social links
+  const contractAddress = "7xKRK8G9L2mF3vBnP8wC4A1tXsY9dQ2eR5nM6uH8jV3z";
+  const pumpFunUrl = "https://pump.fun/coin/7xKRK8G9L2mF3vBnP8wC4A1tXsY9dQ2eR5nM6uH8jV3z";
 
   // Generate initial mock players
   useEffect(() => {
@@ -249,8 +258,41 @@ export default function RugRoulette() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const copyCA = async () => {
+    try {
+      await navigator.clipboard.writeText(contractAddress);
+      // Could add a toast notification here
+    } catch (err) {
+      console.error('Failed to copy CA:', err);
+    }
+  };
+
+  const openPumpFun = () => {
+    window.open(pumpFunUrl, '_blank');
+  };
+
+  // Helper function to render badge icons
+  const renderBadgeIcon = (iconName: string) => {
+    const iconProps = { className: "w-5 h-5" };
+    
+    switch (iconName) {
+      case 'Shield':
+        return <Shield {...iconProps} />;
+      case 'Target':
+        return <Target {...iconProps} />;
+      case 'TrendingUp':
+        return <TrendingUp {...iconProps} />;
+      case 'Sparkles':
+        return <Sparkles {...iconProps} />;
+      case 'Crown':
+        return <Crown {...iconProps} />;
+      default:
+        return <Trophy {...iconProps} />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className={`min-h-screen bg-background text-foreground overflow-x-hidden ${darkMode ? 'dark' : ''}`}>
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -268,11 +310,46 @@ export default function RugRoulette() {
               </div>
             </div>
 
-            {/* Balance */}
-            <div className="flex items-center gap-3">
+            {/* Balance & Controls */}
+            <div className="flex items-center gap-2">
+              {/* Copy CA Button */}
+              <button
+                onClick={copyCA}
+                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bambino font-semibold text-sm transition-all duration-200"
+                title="Copy Contract Address"
+              >
+                <Copy className="w-4 h-4" />
+                <span>Copy CA</span>
+              </button>
+              
+              {/* PumpFun Button */}
+              <button
+                onClick={openPumpFun}
+                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-bambino font-semibold text-sm transition-all duration-200"
+                title="Open on PumpFun"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>PumpFun</span>
+              </button>
+
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 rounded-xl bg-muted hover:bg-secondary border border-border transition-colors"
+                title="Toggle Dark Mode"
+              >
+                {darkMode ? (
+                  <Sun className="w-4 h-4 text-primary" />
+                ) : (
+                  <Moon className="w-4 h-4 text-primary" />
+                )}
+              </button>
+
+              {/* Sound Toggle */}
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
                 className="p-2 rounded-xl bg-muted hover:bg-secondary border border-border transition-colors"
+                title="Toggle Sound"
               >
                 {soundEnabled ? (
                   <Volume2 className="w-4 h-4 text-primary" />
@@ -280,11 +357,15 @@ export default function RugRoulette() {
                   <VolumeX className="w-4 h-4 text-muted-foreground" />
                 )}
               </button>
-              <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border">
+
+              {/* Balance */}
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border">
                 <Wallet className="w-4 h-4 text-primary" />
                 <span className="font-mono text-sm">{balance.toFixed(2)}</span>
                 <span className="text-xs text-muted-foreground">SOL</span>
               </div>
+
+              {/* Connect Button */}
               <button className="px-4 py-2 rounded-xl bg-primary hover:bg-accent text-primary-foreground font-bambino font-semibold text-sm transition-all duration-200">
                 Connect
               </button>
@@ -294,12 +375,33 @@ export default function RugRoulette() {
       </header>
 
       <main className="pt-24 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Mobile Balance */}
-        <div className="sm:hidden flex items-center justify-between mb-6 px-4 py-3 rounded-xl bg-card border border-border">
-          <span className="text-sm text-muted-foreground">Balance</span>
-          <div className="flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-primary" />
-            <span className="font-mono">{balance.toFixed(2)} SOL</span>
+        {/* Mobile Balance & Controls */}
+        <div className="sm:hidden space-y-3 mb-6">
+          {/* Balance */}
+          <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-card border border-border">
+            <span className="text-sm text-muted-foreground">Balance</span>
+            <div className="flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-primary" />
+              <span className="font-mono">{balance.toFixed(2)} SOL</span>
+            </div>
+          </div>
+
+          {/* Mobile Action Buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={copyCA}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bambino font-semibold text-sm transition-all duration-200"
+            >
+              <Copy className="w-4 h-4" />
+              <span>Copy CA</span>
+            </button>
+            <button
+              onClick={openPumpFun}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-bambino font-semibold text-sm transition-all duration-200"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>PumpFun</span>
+            </button>
           </div>
         </div>
 
@@ -312,14 +414,14 @@ export default function RugRoulette() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 sm:flex-initial flex items-center gap-2 px-4 py-3 rounded-lg font-bambino font-semibold text-sm transition-all ${
+                  className={`flex-1 sm:flex-initial flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-bambino font-semibold text-xs sm:text-sm transition-all ${
                     activeTab === tab.id
                       ? 'bg-card text-foreground shadow-md'
                       : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                   }`}
                 >
                   <Icon className="w-4 h-4" style={{ color: activeTab === tab.id ? tab.color : undefined }} />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="text-center">{tab.label}</span>
                 </button>
               );
             })}
@@ -327,7 +429,7 @@ export default function RugRoulette() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column - User Stats & Activity Feed */}
+          {/* Left Column - User Stats & Badges */}
           <div className="lg:col-span-3 space-y-4">
             {/* User Stats */}
             <div className="rug-card rounded-2xl p-5">
@@ -363,7 +465,7 @@ export default function RugRoulette() {
                       }`}
                       title={badge.description}
                     >
-                      <div className="text-lg mb-1">{badge.icon}</div>
+                      <div className="mb-1">{renderBadgeIcon(badge.icon)}</div>
                       <div className="text-xs font-bambino">{badge.name}</div>
                     </div>
                   );
@@ -371,8 +473,6 @@ export default function RugRoulette() {
               </div>
             </div>
 
-            {/* Activity Feed */}
-            <ActivityFeed />
           </div>
 
           {/* Center Column - Dynamic Content */}
@@ -423,15 +523,15 @@ export default function RugRoulette() {
                 {/* Players List */}
                 <div className="mb-8">
                   <h3 className="font-hyperbole text-lg mb-4 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-gray-400" />
+                    <Users className="w-4 h-4 text-muted-foreground" />
                     Players in Pool ({currentPool.players.length}/{currentPool.maxPlayers})
                   </h3>
                   <div className="space-y-2 max-h-[200px] overflow-y-auto">
                     {currentPool.players.map((player, index) => (
                       <div
                         key={player.id}
-                        className={`flex items-center justify-between p-3 rounded-xl transition-all ${
-                          player.address === 'You' ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/5'
+                        className={`flex items-center justify-between p-3 rounded-xl transition-all border ${
+                          player.address === 'You' ? 'bg-green-500/10 border-green-500/20' : 'bg-muted/30 border-border'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -442,7 +542,7 @@ export default function RugRoulette() {
                           />
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className={`font-mono text-sm ${player.address === 'You' ? 'text-green-400' : 'text-white'}`}>
+                              <span className={`font-mono text-sm ${player.address === 'You' ? 'text-green-400' : 'text-foreground'}`}>
                                 {player.address}
                               </span>
                               {player.badges.length > 0 && (
@@ -451,21 +551,21 @@ export default function RugRoulette() {
                                     const badge = BADGES.find(b => b.id === badgeId);
                                     return badge ? (
                                       <span key={badge.id} className="text-xs" title={badge.name}>
-                                        {badge.icon}
+                                        {renderBadgeIcon(badge.icon)}
                                       </span>
                                     ) : null;
                                   })}
                                 </div>
                               )}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-muted-foreground">
                               Joined {Math.floor((Date.now() - player.joinedAt.getTime()) / 1000)}s ago
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-mono text-sm text-green-400">{player.stake} SOL</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             {Math.round((player.stake / currentPool.totalStaked) * 100)}% of pool
                           </div>
                         </div>
@@ -519,21 +619,21 @@ export default function RugRoulette() {
             {activeTab === 'death-pool' && (
               <>
                 {/* Stake Amount */}
-                <div className="rounded-2xl bg-black border border-white/10 p-5">
-                  <h3 className="font-hyperbole text-lg mb-4">Stake Amount</h3>
+                <div className="rug-card rounded-2xl p-5">
+                  <h3 className="font-hyperbole text-lg mb-4 text-foreground">Stake Amount</h3>
 
                   <div className="relative mb-4">
                     <input
                       type="number"
                       value={stakeAmount}
                       onChange={(e) => setStakeAmount(Math.max(currentPool.minStake, Math.min(balance, Number(e.target.value))))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-center font-mono text-2xl focus:outline-none focus:border-green-500/50 transition-colors"
+                      className="w-full bg-muted border border-border rounded-xl px-4 py-4 text-center font-mono text-2xl focus:outline-none focus:border-primary/50 transition-colors text-foreground"
                       disabled={userInPool || currentPool.status !== 'waiting'}
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-500">SOL</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">SOL</span>
                   </div>
 
-                  <div className="text-xs text-gray-500 mb-4 text-center">
+                  <div className="text-xs text-muted-foreground mb-4 text-center">
                     Min: {currentPool.minStake} SOL • Max: {currentPool.maxStake} SOL
                   </div>
 
@@ -542,14 +642,14 @@ export default function RugRoulette() {
                     <button
                       onClick={() => adjustStake("down")}
                       disabled={userInPool}
-                      className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-50"
+                      className="flex-1 py-2 rounded-lg bg-muted hover:bg-secondary border border-border transition-colors disabled:opacity-50"
                     >
                       <ChevronDown className="w-4 h-4 mx-auto" />
                     </button>
                     <button
                       onClick={() => adjustStake("up")}
                       disabled={userInPool}
-                      className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-50"
+                      className="flex-1 py-2 rounded-lg bg-muted hover:bg-secondary border border-border transition-colors disabled:opacity-50"
                     >
                       <ChevronUp className="w-4 h-4 mx-auto" />
                     </button>
@@ -560,14 +660,14 @@ export default function RugRoulette() {
                     <button
                       onClick={setHalfStake}
                       disabled={userInPool}
-                      className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bambino transition-colors disabled:opacity-50"
+                      className="flex-1 py-2 rounded-lg bg-muted hover:bg-secondary border border-border text-xs font-bambino transition-colors disabled:opacity-50"
                     >
                       1/2
                     </button>
                     <button
                       onClick={setMaxStake}
                       disabled={userInPool}
-                      className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bambino transition-colors disabled:opacity-50"
+                      className="flex-1 py-2 rounded-lg bg-muted hover:bg-secondary border border-border text-xs font-bambino transition-colors disabled:opacity-50"
                     >
                       MAX
                     </button>
@@ -580,9 +680,9 @@ export default function RugRoulette() {
                   disabled={userInPool || stakeAmount > balance || stakeAmount < currentPool.minStake || stakeAmount > currentPool.maxStake || currentPool.status !== 'waiting'}
                   className={`w-full py-5 rounded-2xl font-hyperbole text-2xl transition-all duration-300 ${
                     userInPool || currentPool.status !== 'waiting'
-                      ? 'bg-gray-800 cursor-not-allowed text-gray-500'
+                      ? 'bg-muted cursor-not-allowed text-muted-foreground'
                       : stakeAmount > balance || stakeAmount < currentPool.minStake || stakeAmount > currentPool.maxStake
-                      ? 'bg-red-800 cursor-not-allowed text-red-400'
+                      ? 'bg-destructive/20 cursor-not-allowed text-destructive'
                       : 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98]'
                   }`}
                 >
@@ -598,10 +698,10 @@ export default function RugRoulette() {
                   </div>
                 )}
                 {stakeAmount > balance && (
-                  <p className="text-center text-xs text-red-400">Insufficient balance</p>
+                  <p className="text-center text-xs text-destructive">Insufficient balance</p>
                 )}
                 {(stakeAmount < currentPool.minStake || stakeAmount > currentPool.maxStake) && (
-                  <p className="text-center text-xs text-red-400">
+                  <p className="text-center text-xs text-destructive">
                     Stake must be between {currentPool.minStake}-{currentPool.maxStake} SOL
                   </p>
                 )}
@@ -610,31 +710,36 @@ export default function RugRoulette() {
           </div>
         </div>
 
+        {/* Live Activity Feed - Always show at bottom */}
+        <div className="mt-8">
+          <ActivityFeed />
+        </div>
+
         {/* How It Works - Show for Death Pool only */}
         {activeTab === 'death-pool' && (
-          <div className="mt-8 rounded-2xl bg-black border border-white/10 p-6">
-            <h3 className="font-hyperbole text-xl mb-4">How It Works</h3>
+          <div className="mt-8 rug-card rounded-2xl p-6">
+            <h3 className="font-hyperbole text-xl mb-4 text-foreground">How It Works</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-white/5">
+              <div className="p-4 rounded-xl bg-muted/50 border border-border">
                 <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center mb-3">
                   <span className="font-hyperbole text-green-400">1</span>
                 </div>
-                <h4 className="font-bambino font-semibold mb-1">Set Your Stake</h4>
-                <p className="text-sm text-gray-500">Choose how much SOL you want to risk</p>
+                <h4 className="font-bambino font-semibold mb-1 text-foreground">Set Your Stake</h4>
+                <p className="text-sm text-muted-foreground">Choose how much SOL you want to risk</p>
               </div>
-              <div className="p-4 rounded-xl bg-white/5">
+              <div className="p-4 rounded-xl bg-muted/50 border border-border">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mb-3">
                   <span className="font-hyperbole text-blue-400">2</span>
                 </div>
-                <h4 className="font-bambino font-semibold mb-1">Wait for Others</h4>
-                <p className="text-sm text-gray-500">Other players join the death pool</p>
+                <h4 className="font-bambino font-semibold mb-1 text-foreground">Wait for Others</h4>
+                <p className="text-sm text-muted-foreground">Other players join the death pool</p>
               </div>
-              <div className="p-4 rounded-xl bg-white/5">
+              <div className="p-4 rounded-xl bg-muted/50 border border-border">
                 <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center mb-3">
                   <span className="font-hyperbole text-purple-400">3</span>
                 </div>
-                <h4 className="font-bambino font-semibold mb-1">Survive & Win</h4>
-                <p className="text-sm text-gray-500">One random survivor claims the entire pool</p>
+                <h4 className="font-bambino font-semibold mb-1 text-foreground">Survive & Win</h4>
+                <p className="text-sm text-muted-foreground">One random survivor claims the entire pool</p>
               </div>
             </div>
           </div>

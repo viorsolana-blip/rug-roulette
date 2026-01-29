@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trophy, Crown, Medal, TrendingUp, Users, Coins } from "lucide-react";
+import { Trophy, Crown, Medal, TrendingUp, Users, Coins, Shield, Target, Sparkles, Flame } from "lucide-react";
 
 interface LeaderboardEntry {
   id: string;
@@ -83,15 +83,23 @@ export default function Leaderboard({ className = "" }: LeaderboardProps) {
     }
   };
 
-  const getBadgeEmoji = (badgeId: string) => {
-    const badges: Record<string, string> = {
-      'survivor': '🛡️',
-      'veteran': '⭐',
-      'whale': '🐋',
-      'diamond': '💎',
-      'lucky': '🍀'
-    };
-    return badges[badgeId] || '';
+  const renderBadgeIcon = (badgeId: string) => {
+    const iconProps = { className: "w-3 h-3" };
+    
+    switch (badgeId) {
+      case 'survivor':
+        return <Shield {...iconProps} />;
+      case 'veteran':
+        return <Target {...iconProps} />;
+      case 'whale':
+        return <TrendingUp {...iconProps} />;
+      case 'diamond':
+        return <Crown {...iconProps} />;
+      case 'lucky':
+        return <Sparkles {...iconProps} />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -164,7 +172,7 @@ export default function Leaderboard({ className = "" }: LeaderboardProps) {
                     <div className="flex gap-1">
                       {entry.badges.slice(0, 3).map((badge, i) => (
                         <span key={i} className="text-xs">
-                          {getBadgeEmoji(badge)}
+                          {renderBadgeIcon(badge)}
                         </span>
                       ))}
                     </div>
@@ -174,7 +182,10 @@ export default function Leaderboard({ className = "" }: LeaderboardProps) {
                   <span>{entry.gamesWon}W</span>
                   <span>{entry.winRate}%</span>
                   {entry.streak > 0 && (
-                    <span className="text-accent">🔥{entry.streak}</span>
+                    <span className="text-accent flex items-center gap-1">
+                      <Flame className="w-3 h-3" />
+                      {entry.streak}
+                    </span>
                   )}
                 </div>
               </div>
